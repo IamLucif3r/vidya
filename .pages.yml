@@ -1,0 +1,28 @@
+content:
+  - name: daily_logs
+    label: "Daily Logs"
+    type: collection
+    path: "raw/{year}/{month}"
+    filename: "{year}-{month}-{day}.md"
+    format: yaml-frontmatter
+    view:
+      fields: [date, tags]
+      primary: date
+      sort: [date]
+    fields:
+      - name: date
+        label: "Date"
+        type: date
+        default: "{{today}}"
+        required: true
+      - name: tags
+        label: "Tags"
+        type: list
+        field:
+          name: tag
+          type: string
+        required: false
+      - name: body
+        label: "Body"
+        type: rich-text
+        required: true
