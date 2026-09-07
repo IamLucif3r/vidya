@@ -2,11 +2,11 @@
 import { defineConfig } from "astro/config";
 import pagefind from "astro-pagefind";
 
-// Project pages URL: https://iamlucif3r.github.io/vidya/
-// If you add a custom domain, change `base` to "/" and update `site`.
+// Served from the custom domain root. For the *.github.io project URL instead,
+// set `site` to "https://iamlucif3r.github.io" and `base` to "/vidya".
 export default defineConfig({
-  site: "https://iamlucif3r.github.io",
-  base: "/vidya",
+  site: "https://vidya.anmolsinghyadav.com",
+  base: "/",
   trailingSlash: "ignore",
   devToolbar: { enabled: false },
   integrations: [pagefind()],
