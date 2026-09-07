@@ -1,33 +1,16 @@
 ---
 import Layout from "../layouts/Layout.astro";
-
-const base = import.meta.env.BASE_URL;
-const withBase = (path: string) => `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
-// Pagefind assets are generated into the build output during `pagefind --site dist`.
-const pagefindCss = withBase("/pagefind/pagefind-ui.css");
-const pagefindJs = withBase("/pagefind/pagefind-ui.js");
-const bundlePath = withBase("/pagefind/");
+import Search from "astro-pagefind/components/Search.astro";
 ---
 
 <Layout title="Search">
   <h1>Search</h1>
   <p class="muted">Full-text search across every entry.</p>
-  <link href={pagefindCss} rel="stylesheet" />
-  <div id="search" style="margin-top:1rem;"></div>
-  <script is:inline define:vars={{ pagefindJs, bundlePath }}>
-    window.addEventListener("DOMContentLoaded", () => {
-      const start = () => {
-        // eslint-disable-next-line no-undef
-        new PagefindUI({ element: "#search", bundlePath, showSubResults: true });
-      };
-      const script = document.createElement("script");
-      script.src = pagefindJs;
-      script.onload = start;
-      script.onerror = () => {
-        document.getElementById("search").innerHTML =
-          '<p class="muted">Search index not found. Run <code>npm run build</code> to generate it.</p>';
-      };
-      document.head.appendChild(script);
-    });
-  </script>
+  <div style="margin-top:1rem;">
+    <Search id="search" className="pagefind-ui" uiOptions={{ showSubResults: true, showImages: false }} />
+  </div>
+  <p class="muted" style="margin-top:1rem;font-size:0.85rem;">
+    Search runs on the published site and in <code>npm run preview</code>. It is
+    unavailable in <code>npm run dev</code> because the index is built at build time.
+  </p>
 </Layout>

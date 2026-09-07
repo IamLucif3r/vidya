@@ -1,7 +1,14 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import NoteCard from "../components/NoteCard.astro";
-import { getNotes, getTagMap } from "../lib/notes";
+import {
+  getNotes,
+  getTagMap,
+  getActivity,
+  getStreak,
+  excerpt,
+  toLocalISO,
+} from "../lib/notes";
 
 const notes = await getNotes();
 const tagMap = await getTagMap();
@@ -15,65 +22,202 @@ const daysSpan =
     ? Math.max(1, Math.round((newest.getTime() - oldest.getTime()) / 86_400_000) + 1)
     : 0;
 
-const topTags = [...tagMap.entries()]
-  .sort((a, b) => b[1].length - a[1].length)
-  .slice(0, 12);
+const streak = getStreak(notes);
+const featured = notes[0] ?? null;
+const featuredExcerpt = featured ? excerpt(featured) : "";
 
-const latest = notes.slice(0, 8);
+const topTags = [...tagMap.entries()].sort((a, b) => b[1].length - a[1].length);
+const maxTagCount = topTags[0]?.[1].length ?? 1;
+
+const recent = notes.slice(0, 6);
+
+// --- Activity heatmap: last 26 weeks, aligned Sunday..Saturday ---
+const WEEKS = 26;
+const activity = getActivity(notes);
+const maxCount = Math.max(1, ...activity.values());
+
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+const end = new Date(today);
+end.setDate(end.getDate() + (6 - end.getDay())); // this week's Saturday
+const start = new Date(end);
+start.setDate(start.getDate() - (WEEKS * 7 - 1));
+
+type Cell = { iso: string; count: number; level: number; future: boolean; label: string };
+const weeks: Cell[][] = [];
+const cursor = new Date(start);
+for (let w = 0; w < WEEKS; w++) {
+  const col: Cell[] = [];
+  for (let i = 0; i < 7; i++) {
+    const iso = toLocalISO(cursor);
+    const count = activity.get(iso) ?? 0;
+    const level = count === 0 ? 0 : Math.min(4, Math.ceil((count / maxCount) * 4));
+    col.push({
+      iso,
+      count,
+      level,
+      future: cursor > today,
+      label: cursor.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  weeks.push(col);
+}
+
+const phrases = [
+  "tracking cyber threats",
+  "decoding CVEs",
+  "mapping the attack surface",
+  "notes to future me",
+  "today I learned",
+];
+
+const base = import.meta.env.BASE_URL;
+const withBase = (path: string) => `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
 ---
 
-<Layout title="Dashboard">
-  <h1>Knowledge Dashboard</h1>
-  <p class="muted">
-    Facts, news, and insights captured daily — surfaced here for browsing.
-  </p>
+<Layout title="Home">
+  <section class="hero">
+    <div class="hero-word">विद्या</div>
+    <div class="typed">
+      <span class="prompt">&gt;</span>
+      <span id="typed-text">{phrases[0]}</span><span class="caret" aria-hidden="true">▍</span>
+    </div>
+    <p class="hero-sub muted">
+      A daily log of facts, threats, and ideas — captured as they happen, kept for later.
+    </p>
+    <div class="hero-actions">
+      <a class="btn" href={withBase("/timeline")}>Browse timeline</a>
+      <a class="btn btn-ghost" href={withBase("/search")}>Search</a>
+    </div>
+  </section>
 
-  <div class="stats">
-    <div class="stat">
-      <div class="value">{notes.length}</div>
-      <div class="label">Entries</div>
-    </div>
-    <div class="stat">
-      <div class="value">{tagMap.size}</div>
-      <div class="label">Tags</div>
-    </div>
-    <div class="stat">
-      <div class="value">{daysSpan}</div>
-      <div class="label">Day span</div>
-    </div>
-    <div class="stat">
-      <div class="value">{newest ? newest.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}</div>
-      <div class="label">Latest entry</div>
-    </div>
+  <div class="stat-chips">
+    <span class="chip"><b>{notes.length}</b> entries</span>
+    <span class="chip"><b>{tagMap.size}</b> tags</span>
+    <span class="chip"><b>{daysSpan}</b> day span</span>
+    <span class="chip"><b>{streak}</b> day streak</span>
   </div>
 
   {
+    featured && (
+      <a class="featured" href={withBase(`/notes/${featured.slug}`)}>
+        <div class="featured-label">Latest entry</div>
+        <h2 class="featured-title">{featured.title}</h2>
+        <div class="featured-date muted">{featured.displayDate}</div>
+        {featuredExcerpt && <p class="featured-excerpt">{featuredExcerpt}</p>}
+        {featured.tags.length > 0 && (
+          <div class="tags">
+            {featured.tags.map((tag) => (
+              <span class="tag">#{tag}</span>
+            ))}
+          </div>
+        )}
+        <span class="featured-cta">Read →</span>
+      </a>
+    )
+  }
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Activity</h2>
+      <span class="muted">last {WEEKS} weeks</span>
+    </div>
+    <div class="heatmap" role="img" aria-label="Entries per day over the last 26 weeks">
+      {
+        weeks.map((col) => (
+          <div class="heat-col">
+            {col.map((cell) => (
+              <span
+                class:list={["heat-cell", { future: cell.future }]}
+                data-level={cell.level}
+                title={cell.future ? cell.label : `${cell.count} ${cell.count === 1 ? "entry" : "entries"} · ${cell.label}`}
+              />
+            ))}
+          </div>
+        ))
+      }
+    </div>
+    <div class="heat-legend muted">
+      <span>less</span>
+      <span class="heat-cell" data-level="0"></span>
+      <span class="heat-cell" data-level="1"></span>
+      <span class="heat-cell" data-level="2"></span>
+      <span class="heat-cell" data-level="3"></span>
+      <span class="heat-cell" data-level="4"></span>
+      <span>more</span>
+    </div>
+  </section>
+
+  {
     topTags.length > 0 && (
-      <section>
-        <h2 style="font-size:1.2rem;">Top tags</h2>
-        <div class="tags">
-          {topTags.map(([tag, list]) => (
-            <a class="tag" href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/tags/${encodeURIComponent(tag)}`}>
-              #{tag} · {list.length}
-            </a>
-          ))}
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Explore by tag</h2>
+          <a class="muted" href={withBase("/tags")}>all tags →</a>
+        </div>
+        <div class="tag-cloud">
+          {topTags.slice(0, 24).map(([tag, list]) => {
+            const scale = 0.85 + (list.length / maxTagCount) * 0.9;
+            return (
+              <a
+                class="cloud-tag"
+                href={withBase(`/tags/${encodeURIComponent(tag)}`)}
+                style={`font-size:${scale.toFixed(2)}rem`}
+              >
+                #{tag}
+              </a>
+            );
+          })}
         </div>
       </section>
     )
   }
 
-  <section style="margin-top:2rem;">
-    <h2 style="font-size:1.2rem;">Latest entries</h2>
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Recent entries</h2>
+      <a class="muted" href={withBase("/timeline")}>timeline →</a>
+    </div>
     {
-      latest.length > 0 ? (
+      recent.length > 0 ? (
         <ul class="note-list">
-          {latest.map((note) => (
+          {recent.map((note) => (
             <NoteCard note={note} />
           ))}
         </ul>
       ) : (
-        <p class="muted">No notes found under <code>raw/</code> yet.</p>
+        <p class="muted">
+          No notes found under <code>raw/</code> yet.
+        </p>
       )
     }
   </section>
+
+  <script is:inline define:vars={{ phrases }}>
+    (() => {
+      const el = document.getElementById("typed-text");
+      if (!el || !Array.isArray(phrases) || phrases.length === 0) return;
+      let p = 0;
+      let i = 0;
+      let deleting = false;
+      const tick = () => {
+        const word = phrases[p];
+        i += deleting ? -1 : 1;
+        el.textContent = word.slice(0, i);
+        let delay = deleting ? 45 : 90;
+        if (!deleting && i === word.length) {
+          delay = 1600;
+          deleting = true;
+        } else if (deleting && i === 0) {
+          deleting = false;
+          p = (p + 1) % phrases.length;
+          delay = 350;
+        }
+        setTimeout(tick, delay);
+      };
+      setTimeout(tick, 900);
+    })();
+  </script>
 </Layout>
+

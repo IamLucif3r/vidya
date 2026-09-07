@@ -28,12 +28,30 @@ const current = Astro.url.pathname.replace(/\/$/, "");
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <link rel="icon" href={withBase("/favicon.svg")} type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
+      rel="stylesheet"
+    />
     <title>{pageTitle}</title>
+    <script is:inline>
+      // Set theme before paint to avoid a flash of the wrong theme.
+      (() => {
+        const stored = localStorage.getItem("theme");
+        const theme =
+          stored ||
+          (window.matchMedia("(prefers-color-scheme: light)").matches
+            ? "light"
+            : "dark");
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
   </head>
   <body>
     <header class="site-header">
       <div class="inner">
-        <a class="brand" href={withBase("/")}>विद्या <span>vidya</span></a>
+        <a class="brand" href={withBase("/")}><span class="brand-mark">विद्या</span> vidya</a>
         <nav class="nav">
           {
             nav.map((item) => {
@@ -46,6 +64,15 @@ const current = Astro.url.pathname.replace(/\/$/, "");
               );
             })
           }
+          <button
+            id="theme-toggle"
+            class="theme-toggle"
+            type="button"
+            aria-label="Toggle dark and light theme"
+            title="Toggle theme"
+          >
+            <span aria-hidden="true"></span>
+          </button>
         </nav>
       </div>
     </header>
@@ -56,8 +83,25 @@ const current = Astro.url.pathname.replace(/\/$/, "");
     </main>
     <footer class="site-footer">
       <div class="container">
-        vidya · a personal daily knowledge log · edited via Pages CMS
+        vidya · @IamLucif3r · Powered by Astro
       </div>
     </footer>
+    <script is:inline>
+      (() => {
+        const btn = document.getElementById("theme-toggle");
+        const icon = btn?.querySelector("span");
+        const setIcon = (theme) => {
+          if (icon) icon.textContent = theme === "light" ? "☾" : "☼";
+        };
+        setIcon(document.documentElement.dataset.theme);
+        btn?.addEventListener("click", () => {
+          const next =
+            document.documentElement.dataset.theme === "light" ? "dark" : "light";
+          document.documentElement.dataset.theme = next;
+          localStorage.setItem("theme", next);
+          setIcon(next);
+        });
+      })();
+    </script>
   </body>
 </html>
