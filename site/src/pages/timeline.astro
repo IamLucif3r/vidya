@@ -1,0 +1,43 @@
+---
+import Layout from "../layouts/Layout.astro";
+import NoteCard from "../components/NoteCard.astro";
+import { getNotes, type EnrichedNote } from "../lib/notes";
+
+const notes = await getNotes();
+
+// Group newest-first by "Month Year"; undated collected at the end.
+const groups: { label: string; notes: EnrichedNote[] }[] = [];
+const index = new Map<string, number>();
+
+for (const note of notes) {
+  const label = note.date
+    ? note.date.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    : "Undated";
+  if (!index.has(label)) {
+    index.set(label, groups.length);
+    groups.push({ label, notes: [] });
+  }
+  groups[index.get(label)!].notes.push(note);
+}
+---
+
+<Layout title="Timeline">
+  <h1>Timeline</h1>
+  <p class="muted">{notes.length} entries in chronological order.</p>
+  {
+    groups.length > 0 ? (
+      groups.map((group) => (
+        <section class="month-group">
+          <h2>{group.label}</h2>
+          <ul class="note-list">
+            {group.notes.map((note) => (
+              <NoteCard note={note} />
+            ))}
+          </ul>
+        </section>
+      ))
+    ) : (
+      <p class="muted">No entries yet.</p>
+    )
+  }
+</Layout>

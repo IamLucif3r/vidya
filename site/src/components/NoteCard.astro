@@ -1,0 +1,29 @@
+---
+import type { EnrichedNote } from "../lib/notes";
+
+interface Props {
+  note: EnrichedNote;
+}
+
+const { note } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const withBase = (path: string) => `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+---
+
+<li class="note-item">
+  <h3>
+    <a href={withBase(`/notes/${note.slug}`)}>{note.title}</a>
+  </h3>
+  <div class="date">{note.displayDate}</div>
+  {
+    note.tags.length > 0 && (
+      <div class="tags">
+        {note.tags.map((tag) => (
+          <a class="tag" href={withBase(`/tags/${encodeURIComponent(tag)}`)}>
+            #{tag}
+          </a>
+        ))}
+      </div>
+    )
+  }
+</li>

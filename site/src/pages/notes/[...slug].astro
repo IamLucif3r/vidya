@@ -1,0 +1,38 @@
+---
+import { render } from "astro:content";
+import Layout from "../../layouts/Layout.astro";
+import { getNotes } from "../../lib/notes";
+
+export async function getStaticPaths() {
+  const notes = await getNotes();
+  return notes.map((note) => ({
+    params: { slug: note.slug },
+    props: { note },
+  }));
+}
+
+const { note } = Astro.props;
+const { Content } = await render(note.entry);
+const base = import.meta.env.BASE_URL;
+const withBase = (path: string) => `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+---
+
+<Layout title={note.title}>
+  <p class="muted"><a href={withBase("/")}>← Dashboard</a></p>
+  <h1>{note.title}</h1>
+  <div class="date muted">{note.displayDate}</div>
+  {
+    note.tags.length > 0 && (
+      <div class="tags">
+        {note.tags.map((tag) => (
+          <a class="tag" href={withBase(`/tags/${encodeURIComponent(tag)}`)}>
+            #{tag}
+          </a>
+        ))}
+      </div>
+    )
+  }
+  <article class="prose" data-pagefind-body style="margin-top:1.25rem;">
+    <Content />
+  </article>
+</Layout>

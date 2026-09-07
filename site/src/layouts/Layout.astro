@@ -1,0 +1,63 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description = "A personal daily knowledge log." } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const withBase = (path: string) => `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+const pageTitle = title ? `${title} · vidya` : "vidya";
+
+const nav = [
+  { href: withBase("/"), label: "Dashboard" },
+  { href: withBase("/timeline"), label: "Timeline" },
+  { href: withBase("/tags"), label: "Tags" },
+  { href: withBase("/search"), label: "Search" },
+];
+
+const current = Astro.url.pathname.replace(/\/$/, "");
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" href={withBase("/favicon.svg")} type="image/svg+xml" />
+    <title>{pageTitle}</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="inner">
+        <a class="brand" href={withBase("/")}>विद्या <span>vidya</span></a>
+        <nav class="nav">
+          {
+            nav.map((item) => {
+              const itemPath = item.href.replace(/\/$/, "");
+              const isCurrent = itemPath === current;
+              return (
+                <a href={item.href} aria-current={isCurrent ? "page" : undefined}>
+                  {item.label}
+                </a>
+              );
+            })
+          }
+        </nav>
+      </div>
+    </header>
+    <main>
+      <div class="container">
+        <slot />
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        vidya · a personal daily knowledge log · edited via Pages CMS
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,79 @@
+---
+import Layout from "../layouts/Layout.astro";
+import NoteCard from "../components/NoteCard.astro";
+import { getNotes, getTagMap } from "../lib/notes";
+
+const notes = await getNotes();
+const tagMap = await getTagMap();
+
+const dated = notes.filter((n) => n.date);
+const newest = dated[0]?.date ?? null;
+const oldest = dated[dated.length - 1]?.date ?? null;
+
+const daysSpan =
+  newest && oldest
+    ? Math.max(1, Math.round((newest.getTime() - oldest.getTime()) / 86_400_000) + 1)
+    : 0;
+
+const topTags = [...tagMap.entries()]
+  .sort((a, b) => b[1].length - a[1].length)
+  .slice(0, 12);
+
+const latest = notes.slice(0, 8);
+---
+
+<Layout title="Dashboard">
+  <h1>Knowledge Dashboard</h1>
+  <p class="muted">
+    Facts, news, and insights captured daily — surfaced here for browsing.
+  </p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="value">{notes.length}</div>
+      <div class="label">Entries</div>
+    </div>
+    <div class="stat">
+      <div class="value">{tagMap.size}</div>
+      <div class="label">Tags</div>
+    </div>
+    <div class="stat">
+      <div class="value">{daysSpan}</div>
+      <div class="label">Day span</div>
+    </div>
+    <div class="stat">
+      <div class="value">{newest ? newest.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}</div>
+      <div class="label">Latest entry</div>
+    </div>
+  </div>
+
+  {
+    topTags.length > 0 && (
+      <section>
+        <h2 style="font-size:1.2rem;">Top tags</h2>
+        <div class="tags">
+          {topTags.map(([tag, list]) => (
+            <a class="tag" href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/tags/${encodeURIComponent(tag)}`}>
+              #{tag} · {list.length}
+            </a>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  <section style="margin-top:2rem;">
+    <h2 style="font-size:1.2rem;">Latest entries</h2>
+    {
+      latest.length > 0 ? (
+        <ul class="note-list">
+          {latest.map((note) => (
+            <NoteCard note={note} />
+          ))}
+        </ul>
+      ) : (
+        <p class="muted">No notes found under <code>raw/</code> yet.</p>
+      )
+    }
+  </section>
+</Layout>

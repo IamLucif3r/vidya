@@ -1,0 +1,26 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import NoteCard from "../../components/NoteCard.astro";
+import { getTagMap } from "../../lib/notes";
+
+export async function getStaticPaths() {
+  const tagMap = await getTagMap();
+  return [...tagMap.entries()].map(([tag, notes]) => ({
+    params: { tag },
+    props: { tag, notes },
+  }));
+}
+
+const { tag, notes } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const withBase = (path: string) => `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+---
+
+<Layout title={`#${tag}`}>
+  <p class="muted"><a href={withBase("/tags")}>← All tags</a></p>
+  <h1>#{tag}</h1>
+  <p class="muted">{notes.length} {notes.length === 1 ? "entry" : "entries"}</p>
+  <ul class="note-list" style="margin-top:1rem;">
+    {notes.map((note) => <NoteCard note={note} />)}
+  </ul>
+</Layout>

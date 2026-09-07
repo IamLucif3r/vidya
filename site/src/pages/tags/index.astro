@@ -1,0 +1,27 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getTagMap } from "../../lib/notes";
+
+const tagMap = await getTagMap();
+const tags = [...tagMap.entries()].sort((a, b) => b[1].length - a[1].length);
+const base = import.meta.env.BASE_URL;
+const withBase = (path: string) => `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+---
+
+<Layout title="Tags">
+  <h1>Tags</h1>
+  <p class="muted">{tags.length} tags across all entries.</p>
+  {
+    tags.length > 0 ? (
+      <div class="tags" style="margin-top:1rem;">
+        {tags.map(([tag, list]) => (
+          <a class="tag" href={withBase(`/tags/${encodeURIComponent(tag)}`)}>
+            #{tag} · {list.length}
+          </a>
+        ))}
+      </div>
+    ) : (
+      <p class="muted">No tags found yet.</p>
+    )
+  }
+</Layout>
